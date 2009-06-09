@@ -88,7 +88,7 @@ QVector<QStringList> search_database_table(
         {
             res<<query.value(j).toString();
         }
-        qDebug()<<res;
+        //qDebug()<<res;
         result.append(res);
     }
     return result;

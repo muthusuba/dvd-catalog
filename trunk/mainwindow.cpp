@@ -29,7 +29,7 @@
 #include "database.h"
 
 #define DEFAULT_FILENAME "cddb.db"
-#define SEARCH_MAX_RESULTS 20
+#define SEARCH_MAX_RESULTS 100
 
 
 /**
@@ -244,4 +244,10 @@ void MainWindow::on_searchtext_returnPressed()
 void MainWindow::on_allgroups_clicked()
 {
     refresh_groups();
+}
+
+void MainWindow::on_actionAbout_triggered()
+{
+    QMessageBox::about(this,"CD/DVD Management Software",
+                       "Written by\n    Muthu Subramanian K\n    Licensed under GPLv3");
 }
