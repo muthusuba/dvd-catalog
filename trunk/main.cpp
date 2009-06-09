@@ -26,12 +26,23 @@
 
 #include <QtGui/QApplication>
 #include "mainwindow.h"
+#include <QSqlDatabase>
+#include <QtGui>
 
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;
+
+    QApplication::addLibraryPath("./plugins");
+    if(QSqlDatabase::drivers().isEmpty())
+    {
+        QMessageBox msgBox;
+        msgBox.setText(QString("SQL Driver empty\n")+QApplication::libraryPaths().join(","));
+        msgBox.exec();
+        return 1;
+    }
 
     w.show();
     return a.exec();
