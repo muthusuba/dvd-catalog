@@ -59,6 +59,7 @@ private:
     QString db_name;
 
 private slots:
+    void on_actionAbout_triggered();
     void on_allgroups_clicked();
     void on_searchtext_returnPressed();
     void on_pushButton_3_clicked();
