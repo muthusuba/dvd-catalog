@@ -136,6 +136,11 @@ void close_database(void)
     }
 }
 
+bool is_database_open(void)
+{
+    return QSqlDatabase::database().isOpen();
+}
+
 bool create_table(QString table)
 {
     QSqlQuery query;
@@ -206,4 +211,5 @@ bool save_database(void)
     QSqlDatabase db = QSqlDatabase::database();
     if(!db.isOpen()) return false;
     db.commit();
+	return true;
 }

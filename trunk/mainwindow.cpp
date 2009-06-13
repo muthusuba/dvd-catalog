@@ -23,10 +23,19 @@
  * Copyright (C) Muthu Subramanian K June 2009
  *
  */
+
+#define USE_SQL_BATCH
+
 #include <QtGui>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "database.h"
+
+#ifdef USE_SQL_BATCH
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#endif
 
 #define DEFAULT_FILENAME "cddb.db"
 #define SEARCH_MAX_RESULTS 100
@@ -41,6 +50,12 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
     QDirIterator qdir(path,QDir::AllDirs|QDir::NoDotAndDotDot|QDir::NoSymLinks|QDir::Files,
                       QDirIterator::Subdirectories);
 
+    if(!is_database_open())
+    {
+        ui->statusBar->showMessage("Create or open a database");
+        return;
+    }
+
     if(qdir.hasNext())
     {
         create_table(settings->groupid);
@@ -48,7 +63,16 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
     else
     {
         qDebug()<<"Empty Directory? "+path;
+        ui->statusBar->showMessage("Empty Directory?"+settings->dvdid);
+        return;
     }
+
+#ifdef USE_SQL_BATCH
+    QSqlQuery q;
+    QVariantList dvdids, filenames, filetypes;
+    QVariantList sizes, paths, ratings, comments;
+    q.prepare("Insert into "+settings->groupid+" values(?,?,?,?,?,?,?)");
+#endif
 
     while(qdir.hasNext())
     {
@@ -57,14 +81,45 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
         QFileInfo finfo=qdir.fileInfo();
         ui->statusBar->showMessage(finfo.filePath());
 
+        if(settings->dirsonly && !finfo.isDir())
+            continue;
+
+#ifndef USE_SQL_BATCH
         /** Add finfo entry into the database */
         add_to_database(settings->groupid, settings->dvdid,
                      finfo.fileName(), finfo.isDir()?"DIR":finfo.suffix(),
                      finfo.size(), finfo.filePath(),
                      3, "");
+#else
+        dvdids<<settings->dvdid;
+        filenames<<finfo.fileName();
+        filetypes<<(finfo.isDir()?"DIR":finfo.suffix());
+        sizes<<finfo.size();
+        paths<<finfo.filePath();
+        ratings<<3;
+        comments<<"";
+#endif
     }
-    ui->statusBar->showMessage("Index completed:"+settings->dvdid);
-    refresh_groups();
+    ui->statusBar->showMessage("Finishing...");
+#ifdef USE_SQL_BATCH
+    q.addBindValue(dvdids);
+    q.addBindValue(filenames);
+    q.addBindValue(filetypes);
+    q.addBindValue(sizes);
+    q.addBindValue(paths);
+    q.addBindValue(ratings);
+    q.addBindValue(comments);
+    if(!q.execBatch())
+    {
+        qDebug()<<q.lastError();
+        ui->statusBar->showMessage(q.lastError().text());
+    }
+    else
+#endif
+    {
+        ui->statusBar->showMessage("Index completed:"+settings->dvdid);
+        refresh_groups();
+    }
 }
 
 
@@ -117,14 +172,15 @@ void MainWindow::on_searchButton_clicked()
     ui->searchresults->clearContents();
     /* Any other better way? */
     while(ui->searchresults->rowCount())
-        ui->searchresults->removeRow(0);
+       ui->searchresults->removeRow(0);
 
+    ui->searchresults->setSortingEnabled(false);
+    row=0;
     /* Add the search results */
     while(!res.isEmpty())
     {
         QStringList srow;
         srow=res.front();
-        res.pop_front();
 
         ui->searchresults->insertRow(row);
         int c=0;
@@ -136,12 +192,15 @@ void MainWindow::on_searchButton_clicked()
                 eItem->setFlags(eItem->flags()^Qt::ItemIsEditable);
             eItem->setTextAlignment(Qt::AlignLeft);
 
-            //qDebug()<<srow.front();
+            //qDebug()<<row<<c<<eItem->text();
             ui->searchresults->setItem(row,c++,eItem);
+            
             srow.pop_front();
         }
         row++;
+        res.pop_front();
     }
+    ui->searchresults->setSortingEnabled(true);
 }
 
 void MainWindow::on_actionCreate_triggered()
@@ -154,6 +213,7 @@ void MainWindow::on_actionCreate_triggered()
     /** Todo: Ask for _saving_ **/
 
     close_database();
+#if 1
     /* Delete the existing file,
        New file will be created by the open_database
        function
@@ -163,7 +223,7 @@ void MainWindow::on_actionCreate_triggered()
     {
         qDebug()<<"Unable to remove:"<<fileName;
     }
-
+#endif
     db_name=fileName;
     open_database(db_name);
 }
@@ -204,7 +264,8 @@ void MainWindow::on_actionSave_triggered()
 
 void MainWindow::on_actionIndex_Files_triggered()
 {
-    ScanSettings settings={0, ui->groupid->text(), ui->dvdid->text()};
+    ScanSettings settings={ui->onlyDirs->checkState(),ui->addSize->text().toLong(),
+                           ui->groupid->text(), ui->dvdid->text()};
 
     scan_directory(ui->path->text(), &settings);
 }

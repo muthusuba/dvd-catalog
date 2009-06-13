@@ -28,6 +28,7 @@
 #define __DATABASE_H__
 
 
+bool is_database_open(void);
 bool open_database(QString filename);
 void close_database(void);
 bool save_database(void);

@@ -38,6 +38,7 @@ namespace Ui
 
 typedef struct SCANSETTINGS
 {
+    int dirsonly;
     int min_filesize;
     QString groupid;
     QString dvdid;
