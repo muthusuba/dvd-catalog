@@ -30,6 +30,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "database.h"
+#include "singleadddialog.h"
 
 #ifdef USE_SQL_BATCH
 #include <QSqlDatabase>
@@ -46,6 +47,8 @@
  */
 void MainWindow::scan_directory(QString path, ScanSettings *settings)
 {
+    ui->statusBar->showMessage("Starting..."+settings->dvdid);
+
     //QDirIterator dir(path,QDir::NoSymLinks|QDir::NoDotAndDotDot,QDirIterator::Subdirectories);
     QDirIterator qdir(path,QDir::AllDirs|QDir::NoDotAndDotDot|QDir::NoSymLinks|QDir::Files,
                       QDirIterator::Subdirectories);
@@ -71,6 +74,7 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
     QSqlQuery q;
     QVariantList dvdids, filenames, filetypes;
     QVariantList sizes, paths, ratings, comments;
+    qint64 count=0;
     q.prepare("Insert into "+settings->groupid+" values(?,?,?,?,?,?,?)");
 #endif
 
@@ -84,6 +88,11 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
         if(settings->dirsonly && !finfo.isDir())
             continue;
 
+        /** Might ignore directories also */
+        if(finfo.size() < settings->min_filesize && !settings->dirsonly)
+            continue;
+
+        count++;
 #ifndef USE_SQL_BATCH
         /** Add finfo entry into the database */
         add_to_database(settings->groupid, settings->dvdid,
@@ -100,7 +109,7 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
         comments<<"";
 #endif
     }
-    ui->statusBar->showMessage("Finishing...");
+    ui->statusBar->showMessage("Finishing..."+QString::number(count)+" entries");
 #ifdef USE_SQL_BATCH
     q.addBindValue(dvdids);
     q.addBindValue(filenames);
@@ -117,7 +126,7 @@ void MainWindow::scan_directory(QString path, ScanSettings *settings)
     else
 #endif
     {
-        ui->statusBar->showMessage("Index completed:"+settings->dvdid);
+        ui->statusBar->showMessage("Index completed:"+settings->dvdid+" Count:"+QString::number(count));
         refresh_groups();
     }
 }
@@ -151,7 +160,9 @@ void MainWindow::on_searchButton_clicked()
     if(!ui->allgroups->checkState())
     {
         res=search_database_table(
-                     SEARCH_MAX_RESULTS, ui->dvdgroups_list->currentText(),
+                     SEARCH_MAX_RESULTS,
+                     ui->dvdgroups_list->currentText(),
+                     ui->searchDvdId->text(),
                      ui->filename->text(), ui->filetype->text(),
                      ui->size_lessthan->text().toULongLong(), ui->size_morethan->text().toULongLong(),
                      ui->fullpath->text(), ui->ratings->currentIndex()+1, ui->comments->text()
@@ -161,7 +172,7 @@ void MainWindow::on_searchButton_clicked()
     {
         /* Search in all tables */
         res=search_database(
-                     SEARCH_MAX_RESULTS,
+                     SEARCH_MAX_RESULTS, ui->searchDvdId->text(),
                      ui->filename->text(), ui->filetype->text(),
                      ui->size_lessthan->text().toULongLong(), ui->size_morethan->text().toULongLong(),
                      ui->fullpath->text(), ui->ratings->currentIndex()+1, ui->comments->text()
@@ -211,6 +222,7 @@ void MainWindow::on_actionCreate_triggered()
         return;
 
     /** Todo: Ask for _saving_ **/
+
 
     close_database();
 #if 1
@@ -310,5 +322,21 @@ void MainWindow::on_allgroups_clicked()
 void MainWindow::on_actionAbout_triggered()
 {
     QMessageBox::about(this,"CD/DVD Management Software",
-                       "Written by\n    Muthu Subramanian K\n    Licensed under GPLv3");
+                       "Written by"
+                       "\n    Muthu Subramanian K"
+                       "\n http://muthusuba.blogspot.com"
+                       "\n http://code.google.com/p/dvd-catalog/"
+                       "\n    Licensed under GPLv3");
+}
+
+void MainWindow::on_singleentry_clicked()
+{
+    SingleAddDialog dialog(this);
+    if(dialog.exec() == QDialog::Accepted)
+    {
+        qDebug()<<"Accepted";
+        return;
+    }
+
+    return;
 }

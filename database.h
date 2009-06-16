@@ -40,14 +40,15 @@ bool create_table(QString table);
 QStringList get_groups(void);
 
 QVector<QStringList> search_database_table(
-                     qint64 max_results, QString groupname,
+                     qint64 max_results,
+                     QString groupname, QString dvdid,
                      QString filename, QString filetype,
                      qint64 size_lessthan, qint64 size_morethan,
                      QString fullpath, qint64 ratings, QString comments
                      );
 
 QVector<QStringList> search_database(
-                     qint64 max_results,
+                     qint64 max_results, QString dvdid,
                      QString filename, QString filetype,
                      qint64 size_lessthan, qint64 size_morethan,
                      QString fullpath, qint64 ratings, QString comments

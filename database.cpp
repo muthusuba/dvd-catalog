@@ -44,7 +44,8 @@
 
 
 QVector<QStringList> search_database_table(
-                     qint64 max_results, QString groupname,
+                     qint64 max_results,
+                     QString groupname, QString dvdid,
                      QString filename, QString filetype,
                      qint64 size_lessthan, qint64 size_morethan,
                      QString fullpath, qint64 ratings, QString comments
@@ -60,6 +61,8 @@ QVector<QStringList> search_database_table(
 
     /* Check "select *" returned columns order might be different */
     qs="SELECT * from "+groupname+" where ";
+    if(!dvdid.isEmpty())
+        qs+="dvdid like \"%"+dvdid+"%\" AND ";
     if(!filename.isEmpty())
         qs+="filename like \"%"+filename+"%\" AND ";
     if(!filetype.isEmpty())
@@ -95,7 +98,7 @@ QVector<QStringList> search_database_table(
 }
 
 QVector<QStringList> search_database(
-                     qint64 max_results,
+                     qint64 max_results, QString dvdid,
                      QString filename, QString filetype,
                      qint64 size_lessthan, qint64 size_morethan,
                      QString fullpath, qint64 ratings, QString comments
@@ -107,7 +110,7 @@ QVector<QStringList> search_database(
     {
         QVector<QStringList> res;
         res=search_database_table(
-                     max_results, grps.front(),
+                     max_results, grps.front(), dvdid,
                      filename, filetype,
                      size_lessthan, size_morethan,
                      fullpath, ratings, comments
