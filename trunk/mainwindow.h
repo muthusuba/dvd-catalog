@@ -60,6 +60,7 @@ private:
     QString db_name;
 
 private slots:
+    void on_singleentry_clicked();
     void on_actionAbout_triggered();
     void on_allgroups_clicked();
     void on_searchtext_returnPressed();
